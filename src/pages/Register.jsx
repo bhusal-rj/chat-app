@@ -1,51 +1,81 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { Link } from "react-router-dom";
+import { Link,useNavigate } from "react-router-dom";
 import Logo from "../assests/logo.svg";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
+import { registerRoutes } from "../utils/API";
+
 
 function Register() {
   const [values, setValues] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
   });
-  
- 
-
-  const handleValidation = () => {
-    
-    const { password, confirmPassword, username, email } = values;
-    
-    if (password !== confirmPassword) {
-     
-      toast.error("Password must match", {
-        position: "top-right",
-        autoClose: 5000,
-        closeOnClick: true,
-        pauseOnHover: true,
-        theme: "dark",
-      });
-      
-      
-      if (password[0].length < 8) {
-        toast.error("Password must be 8 characters long", {
-          position: "top-right",
-          autoClose: 5000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          theme: "dark",
-        });
-      }
-    }
+  const navigate=useNavigate();
+  const toastOption = {
+    position: "top-right",
+    autoClose: 5000,
+    closeOnClick: true,
+    pauseOnHover: true,
+    theme: "dark",
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    handleValidation();
+  const handleValidation = () => {
+    const { password, confirmPassword, username, email } = values;
     
+    
+    if (password[0] !== confirmPassword[0]) {
+      toast.error("Password must match", toastOption);
+      return false;
+    }else if (username[0].length < 3) {
+      toast.error("Username must be at least 3 characters long", toastOption);
+      return false;
+    }else if (password[0].length < 8) {
+      toast.error("Password must be 8 characters long", toastOption);
+      return false;
+    }else return true;
+
+
+  };
+
+  const handleSubmit = async(e) => {
+    e.preventDefault();
+
+    if(handleValidation()){
+      let {email,password,confirmPassword,username}=values;
+      [email]=email;
+      [password]=password;
+      [username]=username;
+      try{
+        const {data}=await axios.post(registerRoutes,{
+          email,password,username
+        })
+        console.log(data)
+        if(data.status===true){
+          const dataToBeStored={
+            token:data.token,
+            email:data.user.email,
+            username:data.user.username,
+            isAvatarImage:data.user.isAvatarImage,
+            avatarImage:data.user.avatarImage
+          }
+          localStorage.setItem('userInfo', JSON.stringify(dataToBeStored));
+          toast.success(data.msg, toastOption);
+          setTimeout(()=>{
+            navigate('/')
+          },3000);
+        }
+      }catch(err){
+        toast.error(err.response.data.msg,toastOption);
+      }
+      
+      
+      
+    };
   };
 
   const handleChange = (e) => {
@@ -90,7 +120,7 @@ function Register() {
           </span>
         </form>
       </FormContainer>
-       <ToastContainer /> 
+      <ToastContainer />
     </>
   );
 }
